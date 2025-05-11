@@ -46,17 +46,20 @@ const login = asyncHandler(async (req, res) => {
   const refreshToken = user.generateRefreshToken();
   const accessToken = user.generateAccessToken();
 
-  const userData = await User.findById(user._id).select("-password");
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "strict"
+  });
 
-  res.status(200).json(
-    new ApiResponse(200, {
-      user: userData,
-      accessToken,
-      refreshToken
-    }, "User logged in successfully")
-  );
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: false,
+    sameSite: "strict"
+  });
+
+  res.status(200).json(new ApiResponse(200, user, "User logged in successfully"));
 });
-
 
 const logout = asyncHandler(async (req, res) => {
   res.clearCookie("refreshToken", {
