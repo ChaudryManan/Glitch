@@ -1,4 +1,6 @@
 import { Product } from "../model/product.model.js";
+// src/controllers/product.controller.js
+import {orderProduct} from "../model/order.model.js";
 import { User } from "../model/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
