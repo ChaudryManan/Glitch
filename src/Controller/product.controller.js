@@ -3,47 +3,65 @@ import { User } from "../model/user.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asynHandler.js";
-import { uploadCloudnary } from "../utils/cloudnary.js";
-import { orderProduct } from "../model/order.model.js";
+import { uploadToCloudinary } from "../utils/cloudnary.js";
 import nodemailer from "nodemailer"
 import mongoose from "mongoose";
-const createdProduct = asyncHandler(async (req, res) => {
-  const { product_name, product_price, product_description, product_category,product_brand } = req.body;
-
-  // 🔧 Corrected field check
-  if (!product_name || !product_price || !product_description || !product_category ||!product_brand) {
-    throw new ApiError(400, "All fields are required");
-  }
-
-  // 🔧 Corrected file path access (assuming single image upload with name "product_image")
-  const product_image_LocalPath = req.file?.path;
-
-  if (!product_image_LocalPath) {
-    throw new ApiError(400, "Product image path not found");
-  }
-
-  const image_upload = await uploadCloudnary(product_image_LocalPath);
-
-  // 🔧 Save the product to DB
-  const product_info = await Product.create({
+ const createdProduct = asyncHandler(async (req, res) => {
+  const {
     product_name,
     product_price,
     product_description,
     product_category,
     product_brand,
-    product_image: image_upload?.url || "", // Assuming `uploadCloudnary()` returns an object with a `url`
-    owner:req.user._id
+  } = req.body;
+
+  // 1) Validate fields
+  if (
+    !product_name ||
+    !product_price ||
+    !product_description ||
+    !product_category ||
+    !product_brand
+  ) {
+    throw new ApiError(400, "All product fields are required");
+  }
+
+  // 2) Validate file buffer
+  const fileBuffer = req.file?.buffer;
+  if (!fileBuffer) {
+    throw new ApiError(400, "Product image file is required");
+  }
+
+  // 3) Upload image
+  let uploadResult;
+  try {
+    uploadResult = await uploadToCloudinary(fileBuffer);
+  } catch (err) {
+    console.error("Cloudinary upload error:", err);
+    throw new ApiError(500, "Failed to upload image");
+  }
+
+  // 4) Create product document
+  const productInfo = await Product.create({
+    product_name,
+    product_price,
+    product_description,
+    product_category,
+    product_brand,
+    product_image: uploadResult.secure_url,
+    owner: req.user._id,
   });
 
-  if (!product_info) {
+  if (!productInfo) {
     throw new ApiError(500, "Failed to create product");
   }
 
-  // ✅ Respond to client
-  res.status(200).json(
-    new ApiResponse(200, product_info, "Product created successfully")
-  );
+  // 5) Return response
+  res
+    .status(201)
+    .json(new ApiResponse(201, productInfo, "Product created successfully"));
 });
+
 export  const getProduct=asyncHandler(async(req,res)=>{
   const product= await Product.find()
   return res.status(201).json(new ApiResponse(201,product,"all the data is retrieved"))

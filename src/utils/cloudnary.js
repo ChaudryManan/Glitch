@@ -1,44 +1,32 @@
+// src/utils/cloudinary.js
 import { v2 as cloudinary } from "cloudinary";
-import fs from "fs";
+import { PassThrough } from "stream";    // ← import instead of require
 
-cloudinary.config({ 
-    cloud_name: process.env.CLOUDNARY_CLOUD_NAME, 
-    api_key: process.env.CLOUDNARY_API_KEY, 
-    api_secret: process.env.CLOUDNARY_API_SECRET 
+// ensure you’ve loaded dotenv in your entry-point so these are defined:
+cloudinary.config({
+  cloud_name: process.env.Cloudnary_Cloud_Name,
+  api_key:    process.env.Cloudnary_API_Key,
+  api_secret: process.env.Cloudnary_API_Secret,
 });
 
-const uploadCloudnary = async (localfilepath) => {
-    try {
-        if (!localfilepath) return null; // Fix condition
+/**
+ * Upload a Buffer to Cloudinary via upload_stream.
+ * @param {Buffer} buffer
+ * @returns {Promise<import("cloudinary").UploadApiResponse>}
+ */
+export const uploadToCloudinary = (buffer) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { resource_type: "auto" },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      }
+    );
 
-
-        
-        const response = await cloudinary.uploader.upload(localfilepath, {
-            resource_type: "auto"
-        });
-
-        // ✅ Delete the file after successful upload
-        fs.unlink(localfilepath, (err) => {
-            if (err) {
-                console.error("Error deleting local file:", err);
-            } else {
-                console.log("Local file deleted successfully.");
-            }
-        });
-
-        return response;
-    } catch (error) {
-        console.error("Cloudinary upload failed:", error);
-
-        // ✅ Delete file only if it exists, with error handling
-        fs.unlink(localfilepath, (err) => {
-            if (err) {
-                console.error("Error deleting local file after failure:", err);
-            }
-        });
-
-        return null;
-    }
+    // Pipe the buffer into the upload stream
+    const bufferStream = new PassThrough();
+    bufferStream.end(buffer);
+    bufferStream.pipe(uploadStream);
+  });
 };
-
-export { uploadCloudnary };

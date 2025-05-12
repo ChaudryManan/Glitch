@@ -1,14 +1,25 @@
-import multer from "multer"
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-      cb(null,  'C:\\Users\\Usman\\Desktop\\learn\\upload')
+// upload.js
+import multer from "multer";
 
-      
-    },
-    filename: function (req, file, cb) {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-      cb(null, file.fieldname + '-' + uniqueSuffix)
-    }
-  })
-  
-  export const upload = multer({ storage: storage })
+// Use memoryStorage so we never write to disk in production
+const storage = multer.memoryStorage();
+
+// Only accept image files
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith("image/")) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only image files are allowed"), false);
+  }
+};
+
+// Optional: limit filesize to 5 MB per upload
+const limits = {
+  fileSize: 5 * 1024 * 1024, // 5 MB
+};
+
+export const upload = multer({
+  storage,
+  fileFilter,
+  limits,
+});
