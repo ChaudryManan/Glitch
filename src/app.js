@@ -16,7 +16,7 @@ console.log("Cloudinary Config Check:", {
 
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://full-stack-website-theta.vercel.app"
+  "https://full-stack-website-ibue.vercel.app"
 ];
 
 app.use(
